@@ -536,7 +536,7 @@ namespace KSPShipList
 
 			return svd;
 		}
-	} // class SLAllVesselData
+	} // class AllVesselData
 
 
 	////////////////////////////////
