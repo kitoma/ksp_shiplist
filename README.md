@@ -11,5 +11,5 @@ For more information, please visit the [Forums Development Thread].
 
 [Kerbal Space Program]: http://www.kerbalspaceprogram.com
 [KSP Toolbar Plugin]: https://github.com/blizzy78/ksp_toolbar
-[Forums Developtment Thread]: http://forum.kerbalspaceprogram.com/threads/81821
+[Forums Development Thread]: http://forum.kerbalspaceprogram.com/threads/81821
 
