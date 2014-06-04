@@ -44,8 +44,9 @@ namespace KSPShipList
 			public const int ShipListSettingsWindowID = ShipListWindowID + 1;
 			public static Vector2 windowSize = new Vector2(640,480);
 
-			public static float nameWidth { get { return 200f; } } //0.35f * windowSize.x; } }
-			public static float crewWidth { get { return 50f; } } //0.08f * windowSize.x; } }
+			public static float nameMinWidth { get { return 200f; } } //0.35f * windowSize.x; } }
+			public static GUILayoutOption nameLayout = GUILayout.MinWidth(nameMinWidth);
+			public static float crewWidth { get { return 44f; } } //0.08f * windowSize.x; } }
 			public static float fuelWidth { get { return 90f; } } //0.14f * windowSize.x; } }
 		};
 
@@ -131,11 +132,20 @@ namespace KSPShipList
 				GUILayout.EndHorizontal();
 			}
 
+			// compute namewidth. TODO : move computation to filter update function
+			float nameWidth = cfg.windowSize.x - 64;
+			if (SLStaticData.showCrew) { nameWidth -= 3 + cfg.crewWidth; }
+			nameWidth -= SLStaticData.resourceDefs.Count * (3 + cfg.fuelWidth);
+			//Debug_Log("nameWidth=" + nameWidth + " minNameWidth=" + cfg.nameMinWidth);
+			if (nameWidth > cfg.nameMinWidth) {
+				cfg.nameLayout = GUILayout.Width(nameWidth);
+			}
+
 			// title row
 			scrollTitlePosition.x = scrollPosition.x;
 			GUILayout.BeginScrollView(scrollTitlePosition, scrollAreaStyle, GUILayout.ExpandHeight(false));
 			GUILayout.BeginHorizontal();
-			GUILayout.Label("Vessel Name", GUILayout.MinWidth(cfg.nameWidth));
+			GUILayout.Label("Vessel Name", cfg.nameLayout);
 			if (SLStaticData.showCrew) {
 				GUILayout.Space (3);
 				GUILayout.Label ("Crew", GUILayout.Width (cfg.crewWidth));
@@ -152,9 +162,9 @@ namespace KSPShipList
 			foreach (SingleVesselData vd in getVesselData()) {
 				GUILayout.BeginHorizontal();
 				try {
-					GUILayout.Label(vd.name, GUILayout.MinWidth(cfg.nameWidth));
+					GUILayout.Label(vd.name, cfg.nameLayout);
 					// TODO : test
-					// bool b = GUILayout.Button(vd.name, "label", GUILayout.MinWidth(cfg.nameWidth));
+					// bool b = GUILayout.Button(vd.name, "label", GUILayout.MinWidth(cfg.nameMinWidth));
 					// if (b) { Debug.Log("button for \"" + vd.name + "\""); }
 					// end test
 					if (SLStaticData.showCrew) {
@@ -163,7 +173,7 @@ namespace KSPShipList
 					}
 					if (vd.otherInfo != null) {
 						GUILayout.Space(3);
-						GUILayout.Label(vd.otherInfo, GUILayout.Width(3 * cfg.fuelWidth));
+						GUILayout.Label(vd.otherInfo, GUILayout.Width(SLStaticData.resourceDefs.Count * cfg.fuelWidth));
 					} else {
 						foreach (string fuelinfo in vd.fuelStrings)
 						{
