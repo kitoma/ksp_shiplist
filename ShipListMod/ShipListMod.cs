@@ -61,7 +61,6 @@ namespace KSPShipList
 
 		private bool clearButton = false;
 		private bool showEmptyButtonState = false;
-		private bool allowLoadingButtonState = false;
 		private static bool showWindow = false;
 
 		public static void ClearStatics()
@@ -99,10 +98,10 @@ namespace KSPShipList
 
 			// while in-flight, track the active vessel even if the gui is closed
 			if ((!SLStaticData.CurrentSceneIsSafe) && (!showWindow)) {
-				tryGetSingleVesselData(FlightGlobals.ActiveVessel, false, true);
+				tryGetSingleVesselData(FlightGlobals.ActiveVessel, true);
 			}
 		}
-		
+
 		private void OnDraw()
 		{
 			if (showWindow) {
@@ -121,16 +120,6 @@ namespace KSPShipList
 			clearButton |= GUILayout.Button("Clear and Force Update", GUILayout.Width(cfg.windowSize.x * 0.25f));
 			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty/Unknown Vessels");
 			GUILayout.EndHorizontal();
-			if (SLStaticData.CurrentSceneIsSafe && SLStaticData.EverBeenInFlightState) {
-				GUILayout.BeginHorizontal();
-				allowLoadingButtonState = GUILayout.Toggle(allowLoadingButtonState, "Load Vessels:");
-				SLmayLoad.enableLoad[VesselType.Ship]    = GUILayout.Toggle(SLmayLoad.enableLoad[VesselType.Ship], "Ships");
-				SLmayLoad.enableLoad[VesselType.Station] = GUILayout.Toggle(SLmayLoad.enableLoad[VesselType.Station], "Stations");
-				SLmayLoad.enableLoad[VesselType.SpaceObject] = GUILayout.Toggle(SLmayLoad.enableLoad[VesselType.SpaceObject], "Asteroids");
-				SLmayLoad.enableLoadOthers    = GUILayout.Toggle(SLmayLoad.enableLoadOthers, "Others");
-				SLmayLoad.enableLoadLanded    = GUILayout.Toggle(SLmayLoad.enableLoadLanded, "Landed");
-				GUILayout.EndHorizontal();
-			}
 
 			// compute namewidth. TODO : move computation to filter update function
 			float nameWidth = cfg.windowSize.x - 64;
@@ -139,6 +128,8 @@ namespace KSPShipList
 			//Debug_Log("nameWidth=" + nameWidth + " minNameWidth=" + cfg.nameMinWidth);
 			if (nameWidth > cfg.nameMinWidth) {
 				cfg.nameLayout = GUILayout.Width(nameWidth);
+			} else {
+				cfg.nameLayout = GUILayout.MinWidth(cfg.nameMinWidth);
 			}
 
 			// title row
@@ -193,13 +184,13 @@ namespace KSPShipList
 
 
 		////////////////////////////////
-		private SingleVesselData tryGetSingleVesselData(Vessel v, bool allowLoading, bool allowInflightUpdating)
+		private SingleVesselData tryGetSingleVesselData(Vessel v, bool allowInflightUpdating)
 		{
 			if ((v.vesselType == VesselType.Flag) || (v.vesselType == VesselType.EVA)) {
 				return null;
 			}
 			try {
-				return AllVesselData.getData(v, allowLoading, allowInflightUpdating);
+				return AllVesselData.getData(v, allowInflightUpdating);
 			} catch {
 				Debug.LogError("[ShipListMod] getVesselData exception for \"" + v.GetName() + "\"");
 				return null;
@@ -208,16 +199,13 @@ namespace KSPShipList
 
 		private IEnumerable getVesselData()
 		{
-			bool allowLoading = allowLoadingButtonState;
 			bool allowInflightUpdating = true;
 			if (SLStaticData.CurrentSceneIsSafe) {
 				allowInflightUpdating = false;
-			} else {
-				allowLoading = false;
 			}
 
 			foreach (Vessel v in FlightGlobals.Vessels) {
-				SingleVesselData vd = tryGetSingleVesselData(v, allowLoading, allowInflightUpdating);
+				SingleVesselData vd = tryGetSingleVesselData(v, allowInflightUpdating);
 
 				if (vd != null) {
 					if ((vd.hasData && vd.hasAnyResourcesOrCrew) || showEmptyButtonState)
@@ -421,10 +409,6 @@ namespace KSPShipList
 		public string name { get; private set; }
 		public bool hasAnyResourcesOrCrew { get; private set; }
 		public string otherInfo { get; private set; }
-		public bool needsUpdate { get; set; }
-		public bool notYetLoaded { get; set; }
-		public bool failedToLoad { get; set; }
-		public bool manuallyLoaded { get; set; }
 
 		public string crewString { get; private set; }
 		private int crew, maxCrew;
@@ -446,10 +430,6 @@ namespace KSPShipList
 				name = v.GetName ();
 				otherInfo = null;
 			}
-			needsUpdate = true;
-			notYetLoaded = true;
-			failedToLoad = false;
-			manuallyLoaded = false;
 
 			ShipListMod.Debug_Log("new SingleVesselData for " + name);
 			vres = new VesselResources(v);
@@ -458,8 +438,7 @@ namespace KSPShipList
 
 		public void Update(Vessel v)
 		{
-			if ((nextUpdateTimestamp < Time.time)
-				|| (needsUpdate && v.loaded))  // TODO check: needsUpdate vs. v.loaded
+			if (nextUpdateTimestamp < Time.time)
 			{
 				ShipListMod.Debug_Log("updating SingleVesselData for " + name);
 				collectData(v);
@@ -474,8 +453,6 @@ namespace KSPShipList
 			name = v.GetName();
 			hasAnyResourcesOrCrew = false;
 			otherInfo = null;
-			needsUpdate = false;
-			notYetLoaded = false;
 
 			try {
 				collectCrewData(v);
@@ -555,70 +532,23 @@ namespace KSPShipList
 			vessels.Clear();
 		}
 
-		public static SingleVesselData getData(Vessel v, bool allowLoading, bool allowInflightUpdating)
+		public static SingleVesselData getData(Vessel v, bool allowInflightUpdating)
 		{
 			if (v == null) { Debug.LogError("[ShipListMod] AllVesselData.getData(null)"); return null; }
 
 			SingleVesselData svd;
-			allowLoading &= SLmayLoad.query;
 
 			if (! vessels.ContainsKey(v.id)) {
 				vessels.Add(v.id, new SingleVesselData(v));
 				svd = vessels[v.id];
-				if (!v.loaded) {
-					svd.needsUpdate = true;
-					svd.notYetLoaded = true;
-				}
 			} else {
 				svd = vessels[v.id];
 			}
 
-			bool doTryLoad = svd.notYetLoaded && allowLoading;
-			bool doTryUpdate = svd.needsUpdate || allowInflightUpdating || SLStaticData.CurrentSceneIsSafe;
-
-			// check any overrides which still prevent loading
-			if (doTryLoad) {
-				bool vesselTypeFlag = SLmayLoad.enableLoadOthers;
-				SLmayLoad.enableLoad.TryGetValue(v.vesselType, out vesselTypeFlag);
-				// don't touch landed vessels unless explicitly requested
-				if (v.LandedOrSplashed && !SLmayLoad.enableLoadLanded) { vesselTypeFlag = false; }
-
-				if (!vesselTypeFlag)
-				{
-					ShipListMod.Debug_Log("[ShipListMod] AllVesselData.getData(): skip loading \"" + svd.name + "\"");
-					doTryLoad = false;
-					//svd.notYetLoaded = false;
-					svd.needsUpdate = false;
-				}
-			}
-
-			// actually try to load
-			if (doTryLoad) {
-				try {
-					ShipListMod.Debug_Log("[ShipListMod] AllVesselData.getData(): trying to load \"" + svd.name + "\"");
-					SLmayLoad.notifyDidLoad();
-					svd.notYetLoaded = false;
-					svd.manuallyLoaded = true;
-					v.Load();
-					svd.needsUpdate = true;
-				} catch {
-					svd.failedToLoad = true;
-					doTryUpdate = false;
-					Debug.LogWarning("[ShipListMod] AllVesselData.getData(): failed to load \"" + svd.name + "\"");
-				}
-			}
+			bool doTryUpdate = allowInflightUpdating || SLStaticData.CurrentSceneIsSafe;
 
 			if (doTryUpdate) {
 				svd.Update(v);
-
-#if false
-// that didn't work out too well
-				if (svd.manuallyLoaded && svd.hasData && SLStaticData.CurrentSceneIsSafe) {
-					ShipListMod.Debug_Log("[ShipListMod] AllVesselData.getData(): unloading \"" + svd.name + "\"");
-					v.Unload();
-					svd.manuallyLoaded = false;
-				}
-#endif
 			}
 
 			return svd;
@@ -676,39 +606,5 @@ namespace KSPShipList
 			_resourceIndex = null;
 		}
 	} // class SLStaticData
-	
-
-	////////////////////////////////
-	static class SLmayLoad
-	{
-		private const float loadInterval = 1f; // seconds
-		private static float nextLoadTimestamp = 0f;
-
-		static public void notifyDidLoad()
-		{
-			nextLoadTimestamp = Time.time + loadInterval;
-		}
-		static public bool query {
-			get	{
-				return SLStaticData.EverBeenInFlightState && (nextLoadTimestamp < Time.time);
-			}
-		}
-
-		public static Dictionary<VesselType, bool> enableLoad = null;
-		public static bool enableLoadLanded = false;
-		public static bool enableLoadOthers = false;
-
-		static SLmayLoad()
-		{
-			enableLoad = new Dictionary<VesselType, bool>();
-			enableLoad[VesselType.Station] = false;
-			enableLoad[VesselType.Ship] = false;
-			enableLoad[VesselType.SpaceObject] = false;
-			enableLoad[VesselType.Flag] = false;
-			//foreach (VesselType v in System.Enum.GetValues(typeof(VesselType))) {
-			//	enableLoad[v] = false;
-			//}
-		}
-	} // class SLmayLoad
 
 } // namespace KSPShipList
