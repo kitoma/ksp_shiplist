@@ -1,3 +1,15 @@
+/*
+ * Ship List Mod for Kerbal Space Program
+ * https://github.com/kitoma/ksp_shiplist
+ * License: GPL v2.
+ * 
+ * This mod uses some UI code from the Switch Active Vessel Mod
+ * (http://forum.kerbalspaceprogram.com/threads/78183)
+ * for the VesselType filter UI, with permission from the author
+ * (http://forum.kerbalspaceprogram.com/members/100960-avivey).
+ * Original license of that code: BSD 2.
+ */
+
 using UnityEngine;
 using Toolbar;
 using System.Collections;
@@ -118,7 +130,9 @@ namespace KSPShipList
 		{
 			GUILayout.BeginHorizontal();
 			clearButton |= GUILayout.Button("Clear and Force Update", GUILayout.Width(cfg.windowSize.x * 0.25f));
-			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty/Unknown Vessels");
+			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty");
+			GUILayout.FlexibleSpace();
+			VesselTypeSelectorUI.DrawFilter();
 			GUILayout.EndHorizontal();
 
 			// compute namewidth. TODO : move computation to filter update function
@@ -138,8 +152,8 @@ namespace KSPShipList
 			GUILayout.BeginHorizontal();
 			GUILayout.Label("Vessel Name", cfg.nameLayout);
 			if (SLStaticData.showCrew) {
-				GUILayout.Space (3);
-				GUILayout.Label ("Crew", GUILayout.Width (cfg.crewWidth));
+				GUILayout.Space(3);
+				GUILayout.Label("Crew", GUILayout.Width (cfg.crewWidth));
 			}
 			foreach (ResourceDef rd in SLStaticData.resourceDefs) {
 				GUILayout.Space(3);
@@ -149,11 +163,16 @@ namespace KSPShipList
 			GUILayout.EndScrollView();
 
 			// main scroll body
+			int vesselCount = 0;
 			scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollAreaStyle);
 			foreach (SingleVesselData vd in getVesselData()) {
+				if (!VesselTypeSelectorUI.isVesselTypeEnabled(vd.vesselType)) {
+					continue;
+				}
 				GUILayout.BeginHorizontal();
 				try {
 					GUILayout.Label(vd.name, cfg.nameLayout);
+					vesselCount += 1;
 					// TODO : test
 					// bool b = GUILayout.Button(vd.name, "label", GUILayout.MinWidth(cfg.nameMinWidth));
 					// if (b) { Debug.Log("button for \"" + vd.name + "\""); }
@@ -175,6 +194,11 @@ namespace KSPShipList
 				} catch {
 					Debug.LogError("[ShipListMod] exception during gui-update for \"" + vd.name + "\"");
 				}
+				GUILayout.EndHorizontal();
+			}
+			if (vesselCount < 1) {
+				GUILayout.BeginHorizontal();
+				GUILayout.Label("No data");
 				GUILayout.EndHorizontal();
 			}
 			GUILayout.EndScrollView();
@@ -407,6 +431,7 @@ namespace KSPShipList
 	{
 		public bool hasData { get; private set; }
 		public string name { get; private set; }
+		public VesselType vesselType { get; private set; }
 		public bool hasAnyResourcesOrCrew { get; private set; }
 		public string otherInfo { get; private set; }
 
@@ -427,7 +452,8 @@ namespace KSPShipList
 				name = "??";
 				otherInfo = "vessel == null";
 			} else {
-				name = v.GetName ();
+				name = v.GetName();
+				vesselType = v.vesselType;
 				otherInfo = null;
 			}
 
@@ -451,6 +477,7 @@ namespace KSPShipList
 
 			hasData = true;
 			name = v.GetName();
+			vesselType = v.vesselType;
 			hasAnyResourcesOrCrew = false;
 			otherInfo = null;
 
