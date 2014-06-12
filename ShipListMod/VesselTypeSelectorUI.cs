@@ -66,7 +66,7 @@ namespace KSPShipList
 					var enabled = filteredTypes[type];
 					//GUI.color = enabled ? originalColor : Color.black;
 					GUI.color = enabled ? originalColor : Color.red;
-					if (GUILayout.Button("", GUILayout.Width(20.0f), GUILayout.Height(16.0f))) {
+					if (GUILayout.Button("", GUILayout.Width(24.0f), GUILayout.Height(20.0f))) {
 						filteredTypes[type] = ! (filteredTypes[type]);
 					}
 					var button = GUILayoutUtility.GetLastRect();
@@ -101,7 +101,7 @@ namespace KSPShipList
 			OrbitIconLocation[VesselType.Base] = new Rect(0.4f, 0.0f, 0.2f, 0.2f);
 			OrbitIconLocation[VesselType.EVA] = new Rect(0.4f, 0.4f, 0.2f, 0.2f);
 			//OrbitIconLocation[VesselType.Flag] = new Rect(0.8f, 0.0f, 0.2f, 0.2f);
-			OrbitIconLocation[VesselType.Flag] = new Rect(0.87f, 0.07f, 0.15f, 0.15f);
+			OrbitIconLocation[VesselType.Flag] = new Rect(0.86f, 0.07f, 0.15f, 0.15f);
 		}
 
 		private static Texture2D iconsMap;
