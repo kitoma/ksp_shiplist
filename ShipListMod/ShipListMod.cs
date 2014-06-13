@@ -586,25 +586,20 @@ namespace KSPShipList
 	////////////////////////////////
 	static class SLStaticData
 	{
+		public static bool CurrentSceneIsSafe { get { return !HighLogic.LoadedSceneIsFlight; } }
 		public static GameScenes CurrentGuiScene = GameScenes.LOADING;
 
 		public static void UpdateGameScene()
 		{
-			CurrentGuiScene = HighLogic.LoadedScene;
-			if (HighLogic.LoadedSceneIsFlight) {
-				_everBeenInFlightState = true;
+			if (CurrentGuiScene != HighLogic.LoadedScene)
+			{
+				CurrentGuiScene = HighLogic.LoadedScene;
+				bool tmp = UiUtils.hasIcons;  // check and load icon reference (as required)
 			}
 		}
 
-		public static bool CurrentSceneIsSafe { get { return !HighLogic.LoadedSceneIsFlight; } }
-
-		private static bool _everBeenInFlightState = false;
-		public static bool EverBeenInFlightState { get { return _everBeenInFlightState; } }
-
-
 		public static bool showCrew = true;
-
-
+		
 		private static List<ResourceDef> _resourceDefs = null;
 		private static Dictionary<string, PartResourceDefinition> _resourceIndex = null;
 		private static void initResourceDefs()
@@ -628,7 +623,6 @@ namespace KSPShipList
 		public static void Clear()
 		{
 			CurrentGuiScene = GameScenes.LOADING;
-			_everBeenInFlightState = false;
 			_resourceDefs = null;
 			_resourceIndex = null;
 		}

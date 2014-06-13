@@ -18,11 +18,11 @@ namespace KSPShipList
 {
 	static class VesselTypeSelectorUI
 	{
-		private static SortedDictionary<VesselType, bool> filteredTypes;
+		private static Dictionary<VesselType, bool> filteredTypes;
 		private static List<VesselType> buttonOrder;
 
 		static VesselTypeSelectorUI() {
-			filteredTypes =	new SortedDictionary<VesselType, bool>();
+			filteredTypes =	new Dictionary<VesselType, bool>();
 			foreach (VesselType v in System.Enum.GetValues(typeof(VesselType))) {
 				filteredTypes[v] = true;
 			}
