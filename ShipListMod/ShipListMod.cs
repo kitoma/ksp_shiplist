@@ -109,8 +109,8 @@ namespace KSPShipList
 			}
 
 			// while in-flight, track the active vessel even if the gui is closed
-			if ((!SLStaticData.CurrentSceneIsSafe) && (!showWindow)) {
-				tryGetSingleVesselData(FlightGlobals.ActiveVessel, true);
+			if ((HighLogic.LoadedSceneIsFlight) && (!showWindow)) {
+				tryGetSingleVesselData(FlightGlobals.ActiveVessel);
 			}
 		}
 
@@ -120,7 +120,7 @@ namespace KSPShipList
 				// TODO try this:
 				// GUI.skin = Highlogic.Skin
 				// (but it should already be covered by the windowStyle argument...)
-				windowPosition = GUI.Window (cfg.ShipListWindowID, windowPosition, OnWindow, "Ship List", windowStyle);
+				windowPosition = GUI.Window(cfg.ShipListWindowID, windowPosition, OnWindow, "Ship List", windowStyle);
 			}
 		}
 
@@ -129,9 +129,11 @@ namespace KSPShipList
 		private void OnWindow(int windowID)
 		{
 			GUILayout.BeginHorizontal();
-			clearButton |= GUILayout.Button("Clear and Force Update", GUILayout.Width(cfg.windowSize.x * 0.25f));
+			clearButton |= GUILayout.Button("Reset/Clear");
 			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty");
 			GUILayout.FlexibleSpace();
+			GUILayout.Label("Filters:");
+			SLStaticData.SOIfilterButton();
 			VesselTypeSelectorUI.DrawFilter();
 			GUILayout.EndHorizontal();
 
@@ -168,6 +170,13 @@ namespace KSPShipList
 			foreach (SingleVesselData vd in getVesselData()) {
 				if (!VesselTypeSelectorUI.isVesselTypeEnabled(vd.vesselType)) {
 					continue;
+				}
+				if (HighLogic.LoadedSceneIsFlight && SLStaticData.limitSOI) {
+					Debug_Log("act=\"" + FlightGlobals.ActiveVessel.orbit.referenceBody.name + "\",\"" + FlightGlobals.ActiveVessel.orbit.referenceBody.bodyName +
+					          "\" vd=\"" + vd.referenceBody.name + "\"");
+					if (FlightGlobals.ActiveVessel.orbit.referenceBody.name != vd.referenceBody.name) {
+						continue;
+					}
 				}
 				GUILayout.BeginHorizontal();
 				try {
@@ -208,13 +217,13 @@ namespace KSPShipList
 
 
 		////////////////////////////////
-		private SingleVesselData tryGetSingleVesselData(Vessel v, bool allowInflightUpdating)
+		private SingleVesselData tryGetSingleVesselData(Vessel v)
 		{
 			if ((v.vesselType == VesselType.Flag) || (v.vesselType == VesselType.EVA)) {
 				return null;
 			}
 			try {
-				return AllVesselData.getData(v, allowInflightUpdating);
+				return AllVesselData.getData(v);
 			} catch {
 				Debug.LogError("[ShipListMod] getVesselData exception for \"" + v.GetName() + "\"");
 				return null;
@@ -223,13 +232,8 @@ namespace KSPShipList
 
 		private IEnumerable getVesselData()
 		{
-			bool allowInflightUpdating = true;
-			if (SLStaticData.CurrentSceneIsSafe) {
-				allowInflightUpdating = false;
-			}
-
 			foreach (Vessel v in FlightGlobals.Vessels) {
-				SingleVesselData vd = tryGetSingleVesselData(v, allowInflightUpdating);
+				SingleVesselData vd = tryGetSingleVesselData(v);
 
 				if (vd != null) {
 					if ((vd.hasData && vd.hasAnyResourcesOrCrew) || showEmptyButtonState)
@@ -441,6 +445,8 @@ namespace KSPShipList
 		public string[] fuelStrings { get; private set; }
 		private VesselResources vres = null;
 
+		public CelestialBody referenceBody { get; private set; }
+
 		private const float UpdateInterval = 10f;  // seconds
 		private float nextUpdateTimestamp = 0f;
 		
@@ -480,6 +486,12 @@ namespace KSPShipList
 			vesselType = v.vesselType;
 			hasAnyResourcesOrCrew = false;
 			otherInfo = null;
+
+			try {
+				referenceBody = v.orbit.referenceBody;
+			} catch {
+				Debug.LogError("[ShipListMod] exception when collecting referenceBody");
+			}
 
 			try {
 				collectCrewData(v);
@@ -559,7 +571,7 @@ namespace KSPShipList
 			vessels.Clear();
 		}
 
-		public static SingleVesselData getData(Vessel v, bool allowInflightUpdating)
+		public static SingleVesselData getData(Vessel v)
 		{
 			if (v == null) { Debug.LogError("[ShipListMod] AllVesselData.getData(null)"); return null; }
 
@@ -572,11 +584,7 @@ namespace KSPShipList
 				svd = vessels[v.id];
 			}
 
-			bool doTryUpdate = allowInflightUpdating || SLStaticData.CurrentSceneIsSafe;
-
-			if (doTryUpdate) {
-				svd.Update(v);
-			}
+			svd.Update(v);
 
 			return svd;
 		}
@@ -586,7 +594,6 @@ namespace KSPShipList
 	////////////////////////////////
 	static class SLStaticData
 	{
-		public static bool CurrentSceneIsSafe { get { return !HighLogic.LoadedSceneIsFlight; } }
 		public static GameScenes CurrentGuiScene = GameScenes.LOADING;
 
 		public static void UpdateGameScene()
@@ -599,6 +606,19 @@ namespace KSPShipList
 		}
 
 		public static bool showCrew = true;
+
+		public static bool limitSOI = false;
+		public static void SOIfilterButton()
+		{
+			if (HighLogic.LoadedSceneIsFlight) {
+				var originalColor = GUI.color;
+				GUI.color = limitSOI ? Color.green : originalColor;
+				if (GUILayout.Button("SOI")) {
+					limitSOI = !limitSOI;
+				}
+				GUI.color = originalColor;
+			}
+		}
 		
 		private static List<ResourceDef> _resourceDefs = null;
 		private static Dictionary<string, PartResourceDefinition> _resourceIndex = null;
