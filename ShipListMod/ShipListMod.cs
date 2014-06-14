@@ -172,9 +172,7 @@ namespace KSPShipList
 					continue;
 				}
 				if (HighLogic.LoadedSceneIsFlight && SLStaticData.limitSOI) {
-					Debug_Log("act=\"" + FlightGlobals.ActiveVessel.orbit.referenceBody.name + "\",\"" + FlightGlobals.ActiveVessel.orbit.referenceBody.bodyName +
-					          "\" vd=\"" + vd.referenceBody.name + "\"");
-					if (FlightGlobals.ActiveVessel.orbit.referenceBody.name != vd.referenceBody.name) {
+					if (FlightGlobals.ActiveVessel.orbit.referenceBody.name != vd.referenceBodyName) {
 						continue;
 					}
 				}
@@ -445,7 +443,7 @@ namespace KSPShipList
 		public string[] fuelStrings { get; private set; }
 		private VesselResources vres = null;
 
-		public CelestialBody referenceBody { get; private set; }
+		public string referenceBodyName { get; private set; }
 
 		private const float UpdateInterval = 10f;  // seconds
 		private float nextUpdateTimestamp = 0f;
@@ -461,6 +459,7 @@ namespace KSPShipList
 				name = v.GetName();
 				vesselType = v.vesselType;
 				otherInfo = null;
+				referenceBodyName = null;
 			}
 
 			ShipListMod.Debug_Log("new SingleVesselData for " + name);
@@ -488,9 +487,9 @@ namespace KSPShipList
 			otherInfo = null;
 
 			try {
-				referenceBody = v.orbit.referenceBody;
+				referenceBodyName = v.orbit.referenceBody.name;
 			} catch {
-				Debug.LogError("[ShipListMod] exception when collecting referenceBody");
+				Debug.LogError("[ShipListMod] exception when collecting referenceBodyName");
 			}
 
 			try {
