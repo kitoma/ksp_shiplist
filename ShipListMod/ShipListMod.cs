@@ -77,11 +77,7 @@ namespace KSPShipList
 			if (!SLStaticData.limitSOI) {
 				return false;
 			}
-			if ((activeSOIname != null) && (activeSOIname != referenceBodyName))
-			{
-				return true;
-			}
-			return false;
+			return ((activeSOIname != null) && (activeSOIname != referenceBodyName));
 		}
 	}
 	
@@ -95,7 +91,13 @@ namespace KSPShipList
 			if (!SLStaticData.limitSOI) {
 				return false;
 			}
-			return (FlightGlobals.ActiveVessel.orbit.referenceBody.name != referenceBodyName);
+			string activeSOIname = null;
+			try {
+				activeSOIname = FlightGlobals.ActiveVessel.orbit.referenceBody.name;
+			} catch {
+				// just in case..
+			}
+			return ((activeSOIname != null) && (activeSOIname != referenceBodyName));
 		}
 	}
 
