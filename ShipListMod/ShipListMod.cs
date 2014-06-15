@@ -270,9 +270,6 @@ namespace KSPShipList
 		////////////////////////////////
 		private SingleVesselData tryGetSingleVesselData(Vessel v)
 		{
-			if ((v.vesselType == VesselType.Flag) || (v.vesselType == VesselType.EVA)) {
-				return null;
-			}
 			try {
 				return AllVesselData.getData(v);
 			} catch {
