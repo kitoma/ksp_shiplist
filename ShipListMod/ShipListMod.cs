@@ -17,7 +17,6 @@ using System.Collections.Generic;
 
 namespace KSPShipList
 {
-
 	// clean up every time we get to / return to the main menu.
 	[KSPAddon(KSPAddon.Startup.MainMenu, false)]
 	public class ShipListInitMainMenu : MonoBehaviour
@@ -39,14 +38,68 @@ namespace KSPShipList
 	public class ShipListTrackingStation : ShipListMod
 	{
 		public override string ClassName { get { return this.name; } }
+
+		// the TrackingStation subclass is a bit more complicated because it has to register
+		// a listener to know the active vessel (for SOI-filtering)
+		private string activeSOIname = null;
+
+		private void activeShipChanged(MapObject target) {
+			activeSOIname = null;
+			try {
+				if (target != null) {
+					activeSOIname = target.vessel.orbit.referenceBody.name;
+				}
+			} catch {
+				// just ignore any NullReferenceExceptions which do occur during scene loading
+			}
+		}
+
+		public void Start()
+		{
+			GameEvents.onPlanetariumTargetChanged.Add(activeShipChanged);
+		}
+
+		public new void Awake()
+		{
+			activeSOIname = null;
+			base.Awake();
+		}
+
+		public new void OnDestroy()
+		{
+			GameEvents.onPlanetariumTargetChanged.Remove(activeShipChanged);
+			activeSOIname = null;
+			base.OnDestroy();
+		}
+
+		public override bool isSOIfiltered(string referenceBodyName)
+		{
+			if (!SLStaticData.limitSOI) {
+				return false;
+			}
+			if ((activeSOIname != null) && (activeSOIname != referenceBodyName))
+			{
+				return true;
+			}
+			return false;
+		}
 	}
 	
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
 	public class ShipListFlight : ShipListMod
 	{
 		public override string ClassName { get { return this.name; } }
+
+		public override bool isSOIfiltered(string referenceBodyName)
+		{
+			if (!SLStaticData.limitSOI) {
+				return false;
+			}
+			return (FlightGlobals.ActiveVessel.orbit.referenceBody.name != referenceBodyName);
+		}
 	}
 
+	////////////////////////////////
 	// actual implementation of the main class.
 	public class ShipListMod : MonoBehaviour
 	{
@@ -133,7 +186,7 @@ namespace KSPShipList
 			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty");
 			GUILayout.FlexibleSpace();
 			GUILayout.Label("Filters:");
-			SLStaticData.SOIfilterButton();
+			SLStaticData.DrawSOIfilterButton();
 			VesselTypeSelectorUI.DrawFilter();
 			GUILayout.EndHorizontal();
 
@@ -171,10 +224,8 @@ namespace KSPShipList
 				if (!VesselTypeSelectorUI.isVesselTypeEnabled(vd.vesselType)) {
 					continue;
 				}
-				if (HighLogic.LoadedSceneIsFlight && SLStaticData.limitSOI) {
-					if (FlightGlobals.ActiveVessel.orbit.referenceBody.name != vd.referenceBodyName) {
-						continue;
-					}
+				if (isSOIfiltered(vd.referenceBodyName)) {
+					continue;
 				}
 				GUILayout.BeginHorizontal();
 				try {
@@ -243,6 +294,12 @@ namespace KSPShipList
 		}
 
 		////////////////////////////////
+		public virtual bool isSOIfiltered(string referenceBodyName)
+		{
+			return false;
+		}
+
+		////////////////////////////////
 		private string GetPath(string subPath) {
 			// "\" PathSeparator makes Toolbar unhappy
 			return System.IO.Path.Combine(cfg.BasePath, subPath).Replace('\\', '/');
@@ -260,7 +317,7 @@ namespace KSPShipList
 			toolbarButton.OnClick += (e) => { showWindow = !showWindow; };
 		}
 
-		internal void OnDestroy()
+		public void OnDestroy()
 		{
 			if (toolbarButton != null) {
 				toolbarButton.Destroy();
@@ -607,9 +664,9 @@ namespace KSPShipList
 		public static bool showCrew = true;
 
 		public static bool limitSOI = false;
-		public static void SOIfilterButton()
+		public static void DrawSOIfilterButton()
 		{
-			if (HighLogic.LoadedSceneIsFlight) {
+			if ((CurrentGuiScene == GameScenes.FLIGHT) || (CurrentGuiScene == GameScenes.TRACKSTATION)) {
 				var originalColor = GUI.color;
 				GUI.color = limitSOI ? Color.green : originalColor;
 				if (GUILayout.Button("SOI")) {
@@ -618,7 +675,7 @@ namespace KSPShipList
 				GUI.color = originalColor;
 			}
 		}
-		
+
 		private static List<ResourceDef> _resourceDefs = null;
 		private static Dictionary<string, PartResourceDefinition> _resourceIndex = null;
 		private static void initResourceDefs()
