@@ -41,7 +41,6 @@ namespace KSPShipList
 
 		// the TrackingStation subclass is a bit more complicated because it has to register
 		// a listener to know the active vessel (for SOI-filtering)
-		private string activeSOIname = null;
 
 		private void activeShipChanged(MapObject target) {
 			activeSOIname = null;
@@ -71,16 +70,8 @@ namespace KSPShipList
 			activeSOIname = null;
 			base.OnDestroy();
 		}
-
-		public override bool isSOIfiltered(string referenceBodyName)
-		{
-			if (!SLStaticData.limitSOI) {
-				return false;
-			}
-			return ((activeSOIname != null) && (activeSOIname != referenceBodyName));
-		}
 	}
-	
+
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
 	public class ShipListFlight : ShipListMod
 	{
@@ -88,16 +79,15 @@ namespace KSPShipList
 
 		public override bool isSOIfiltered(string referenceBodyName)
 		{
-			if (!SLStaticData.limitSOI) {
-				return false;
+			if (SOIfilter.filterIsActiveVessel) {
+				// update vessel name
+				try {
+					activeSOIname = FlightGlobals.ActiveVessel.orbit.referenceBody.name;
+				} catch {
+					// just in case..
+				}
 			}
-			string activeSOIname = null;
-			try {
-				activeSOIname = FlightGlobals.ActiveVessel.orbit.referenceBody.name;
-			} catch {
-				// just in case..
-			}
-			return ((activeSOIname != null) && (activeSOIname != referenceBodyName));
+			return base.isSOIfiltered(referenceBodyName);
 		}
 	}
 
@@ -130,6 +120,8 @@ namespace KSPShipList
 		private bool showEmptyButtonState = false;
 		private static bool showWindow = false;
 
+		public static SOIFilterUI SOIfilter;
+
 		public static void ClearStatics()
 		{
 			ShipListMod.Debug_Log("[ShipListMod] clearstatics called");
@@ -149,6 +141,7 @@ namespace KSPShipList
 			windowPosition = new Rect(Screen.width-40-cfg.windowSize.x, (Screen.height-cfg.windowSize.y)/2, cfg.windowSize.x, cfg.windowSize.y);
 			RenderingManager.AddToPostDrawQueue(0, OnDraw);
 			SLStaticData.UpdateGameScene();
+			SOIfilter = new SOIFilterUI();
 			print ("Loaded ShipListMod (" + ClassName + ").");
 		}
 
@@ -188,7 +181,8 @@ namespace KSPShipList
 			showEmptyButtonState = GUILayout.Toggle(showEmptyButtonState, "Show Empty");
 			GUILayout.FlexibleSpace();
 			GUILayout.Label("Filters:");
-			SLStaticData.DrawSOIfilterButton();
+			GUILayout.Label("", GUILayout.Width(60), GUILayout.Height(20));
+			var soiSelectorRect = GUILayoutUtility.GetLastRect();
 			VesselTypeSelectorUI.DrawFilter();
 			GUILayout.EndHorizontal();
 
@@ -210,7 +204,7 @@ namespace KSPShipList
 			GUILayout.Label("Vessel Name", cfg.nameLayout);
 			if (SLStaticData.showCrew) {
 				GUILayout.Space(3);
-				GUILayout.Label("Crew", GUILayout.Width (cfg.crewWidth));
+				GUILayout.Label("Crew", GUILayout.Width(cfg.crewWidth));
 			}
 			foreach (ResourceDef rd in SLStaticData.resourceDefs) {
 				GUILayout.Space(3);
@@ -263,6 +257,9 @@ namespace KSPShipList
 			}
 			GUILayout.EndScrollView();
 
+			// do this last to make sure it overlaps/overwrites other content
+			SOIfilter.Show(soiSelectorRect);
+
 			GUI.DragWindow();
 		}
 
@@ -293,8 +290,19 @@ namespace KSPShipList
 		}
 
 		////////////////////////////////
+		public string activeSOIname = null;
 		public virtual bool isSOIfiltered(string referenceBodyName)
 		{
+			if (!SOIfilter.isFilterActive) {
+				return false;
+			}
+			if (SOIfilter.filterIsActiveVessel) {
+				return ((activeSOIname != null) && (activeSOIname != referenceBodyName));
+			}
+			if (SOIfilter.filterIsOtherBody) {
+				string otherSOIname = SOIfilter.filterGetOtherBodyName;
+				return ((otherSOIname != null) && (otherSOIname != referenceBodyName));
+			}
 			return false;
 		}
 
@@ -661,19 +669,6 @@ namespace KSPShipList
 		}
 
 		public static bool showCrew = true;
-
-		public static bool limitSOI = false;
-		public static void DrawSOIfilterButton()
-		{
-			if ((CurrentGuiScene == GameScenes.FLIGHT) || (CurrentGuiScene == GameScenes.TRACKSTATION)) {
-				var originalColor = GUI.color;
-				GUI.color = limitSOI ? Color.green : originalColor;
-				if (GUILayout.Button("SOI")) {
-					limitSOI = !limitSOI;
-				}
-				GUI.color = originalColor;
-			}
-		}
 
 		private static List<ResourceDef> _resourceDefs = null;
 		private static Dictionary<string, PartResourceDefinition> _resourceIndex = null;
