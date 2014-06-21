@@ -102,6 +102,7 @@ namespace KSPShipList {
 		}
 	}
 
+#if false
 	public class ComboBox
 	{
 		private static bool forceToUnShow = false; 
@@ -187,5 +188,6 @@ namespace KSPShipList {
 			return selectedItemIndex;
 		}
 	}
+#endif
 
 } // namespace KSPShipList
