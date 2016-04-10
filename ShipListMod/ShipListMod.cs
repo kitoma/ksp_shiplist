@@ -139,7 +139,6 @@ namespace KSPShipList
 				staticsInitialized = true;
 			}
 			windowPosition = new Rect(Screen.width-40-cfg.windowSize.x, (Screen.height-cfg.windowSize.y)/2, cfg.windowSize.x, cfg.windowSize.y);
-			RenderingManager.AddToPostDrawQueue(0, OnDraw);
 			SLStaticData.UpdateGameScene();
 			SOIfilter = new SOIFilterUI();
 			print ("Loaded ShipListMod (" + ClassName + ").");
@@ -162,7 +161,12 @@ namespace KSPShipList
 			}
 		}
 
-		private void OnDraw()
+		private void OnGUI()
+		{
+			drawGUI();
+		}
+
+		private void drawGUI()
 		{
 			if (showWindow) {
 				// TODO try this:
@@ -267,6 +271,7 @@ namespace KSPShipList
 		////////////////////////////////
 		private SingleVesselData tryGetSingleVesselData(Vessel v)
 		{
+			if (v == null) { return null; }
 			try {
 				return AllVesselData.getData(v);
 			} catch {
@@ -341,7 +346,7 @@ namespace KSPShipList
 		public static void Debug_Log(object msg)
 		{
 #if DEBUG
-			Debug.Log(msg);
+			Debug.Log("[ShipListMod] " + msg);
 #endif
 		}
 	} // class ShipListMod
