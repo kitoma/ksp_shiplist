@@ -11,9 +11,11 @@
  */
 
 using UnityEngine;
-using Toolbar;
+using KSP.UI.Screens;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 
 namespace KSPShipList
 {
@@ -96,7 +98,6 @@ namespace KSPShipList
 	public class ShipListMod : MonoBehaviour
 	{
 		private struct cfg {
-			public const string BasePath = "Kiwa";
 			public const int ShipListWindowID = 1231648609; // Kiwa.hexdump
 			public const int ShipListSettingsWindowID = ShipListWindowID + 1;
 			public static Vector2 windowSize = new Vector2(640,480);
@@ -107,9 +108,9 @@ namespace KSPShipList
 			public static float fuelWidth { get { return 90f; } } //0.14f * windowSize.x; } }
 		};
 
-		private static IButton toolbarButton = null;
+        private static ApplicationLauncherButton applauncherButton = null;
 
-		public virtual string ClassName { get; set; }
+        public virtual string ClassName { get; set; }
 		private Rect windowPosition;
 
 		private static bool staticsInitialized = false;
@@ -133,7 +134,7 @@ namespace KSPShipList
 
 		public void Awake()
 		{
-			createToolbarButton();
+			createButton();
 			if (!staticsInitialized) {
 				initStyles();
 				staticsInitialized = true;
@@ -312,29 +313,29 @@ namespace KSPShipList
 		}
 
 		////////////////////////////////
-		private string GetPath(string subPath) {
-			// "\" PathSeparator makes Toolbar unhappy
-			return System.IO.Path.Combine(cfg.BasePath, subPath).Replace('\\', '/');
+		private void createButton()
+		{
+            const ApplicationLauncher.AppScenes VisibleInScenes = ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.TRACKSTATION | ApplicationLauncher.AppScenes.FLIGHT;
+            var texture = new Texture2D(36, 36, TextureFormat.RGBA32, false);
+            var filename = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ToolbarIcons/shiplisticon.png").Replace('\\', '/');
+            texture.LoadImage(File.ReadAllBytes(filename));
+            applauncherButton = ApplicationLauncher.Instance.AddModApplication(OnTrue, OnFalse, null, null, null, OnDisable,
+                VisibleInScenes, texture);
 		}
 
-		////////////////////////////////
-		private void createToolbarButton()
-		{
-			toolbarButton = ToolbarManager.Instance.add("ShipListMod", "shipList");
-			toolbarButton.TexturePath = GetPath("Plugins/ToolbarIcons/shiplisticon");
-			toolbarButton.ToolTip = "Ship List Mod";
-			toolbarButton.Visibility = new GameScenesVisibility(GameScenes.SPACECENTER, GameScenes.TRACKSTATION, GameScenes.FLIGHT);
-			toolbarButton.Visible = true;
-			toolbarButton.Enabled = true;
-			toolbarButton.OnClick += (e) => { showWindow = !showWindow; };
-		}
+        public void OnTrue() { showWindow = true; }
+        public void OnFalse() { showWindow = false; }
+        public void OnDisable() { showWindow = false; }
 
 		public void OnDestroy()
 		{
-			if (toolbarButton != null) {
-				toolbarButton.Destroy();
-				toolbarButton = null;
-			}
+            if (applauncherButton != null) {
+                try {
+                    ApplicationLauncher.Instance.RemoveModApplication(applauncherButton);
+                }
+                catch { /* ignore */ }
+                applauncherButton = null;
+            }
 		}
 
 		private void initStyles()
@@ -472,9 +473,8 @@ namespace KSPShipList
 						}
 						int key = resourceIndex[r.resourceName].id;
 						if (tempDict.ContainsKey(key)) {
-							ConfigNode cf = r.resourceValues;
-							tempDict[key].amount += doubleValue(cf, "amount");
-							tempDict[key].maxAmount += doubleValue(cf, "maxAmount");
+                            tempDict[key].amount += r.amount;
+                            tempDict[key].maxAmount += r.maxAmount;
 						}
 					}
 				}
@@ -487,12 +487,6 @@ namespace KSPShipList
 					this.Add(kv.Key, kv.Value);
 				}
 			}
-		}
-
-		private static double doubleValue(ConfigNode node, string key) {
-			double v = 0d;
-			System.Double.TryParse(node.GetValue(key), out v);
-			return v;
 		}
 	} // class VesselResources
 
