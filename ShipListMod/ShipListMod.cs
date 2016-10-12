@@ -108,9 +108,9 @@ namespace KSPShipList
 			public static float fuelWidth { get { return 90f; } } //0.14f * windowSize.x; } }
 		};
 
-        private static ApplicationLauncherButton applauncherButton = null;
+		private static ApplicationLauncherButton applauncherButton = null;
 
-        public virtual string ClassName { get; set; }
+		public virtual string ClassName { get; set; }
 		private Rect windowPosition;
 
 		private static bool staticsInitialized = false;
@@ -315,27 +315,27 @@ namespace KSPShipList
 		////////////////////////////////
 		private void createButton()
 		{
-            const ApplicationLauncher.AppScenes VisibleInScenes = ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.TRACKSTATION | ApplicationLauncher.AppScenes.FLIGHT;
-            var texture = new Texture2D(36, 36, TextureFormat.RGBA32, false);
-            var filename = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ToolbarIcons/shiplisticon.png").Replace('\\', '/');
-            texture.LoadImage(File.ReadAllBytes(filename));
-            applauncherButton = ApplicationLauncher.Instance.AddModApplication(OnTrue, OnFalse, null, null, null, OnDisable,
-                VisibleInScenes, texture);
+			const ApplicationLauncher.AppScenes VisibleInScenes = ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.TRACKSTATION | ApplicationLauncher.AppScenes.FLIGHT;
+			var texture = new Texture2D(36, 36, TextureFormat.RGBA32, false);
+			var filename = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ToolbarIcons/shiplisticon.png").Replace('\\', '/');
+			texture.LoadImage(File.ReadAllBytes(filename));
+			applauncherButton = ApplicationLauncher.Instance.AddModApplication(OnTrue, OnFalse, null, null, null, OnDisable,
+				VisibleInScenes, texture);
 		}
 
-        public void OnTrue() { showWindow = true; }
-        public void OnFalse() { showWindow = false; }
-        public void OnDisable() { showWindow = false; }
+		public void OnTrue() { showWindow = true; }
+		public void OnFalse() { showWindow = false; }
+		public void OnDisable() { showWindow = false; }
 
 		public void OnDestroy()
 		{
-            if (applauncherButton != null) {
-                try {
-                    ApplicationLauncher.Instance.RemoveModApplication(applauncherButton);
-                }
-                catch { /* ignore */ }
-                applauncherButton = null;
-            }
+			if (applauncherButton != null) {
+				try {
+					ApplicationLauncher.Instance.RemoveModApplication(applauncherButton);
+				}
+				catch { /* ignore */ }
+				applauncherButton = null;
+			}
 		}
 
 		private void initStyles()
@@ -473,8 +473,8 @@ namespace KSPShipList
 						}
 						int key = resourceIndex[r.resourceName].id;
 						if (tempDict.ContainsKey(key)) {
-                            tempDict[key].amount += r.amount;
-                            tempDict[key].maxAmount += r.maxAmount;
+							tempDict[key].amount += r.amount;
+							tempDict[key].maxAmount += r.maxAmount;
 						}
 					}
 				}
