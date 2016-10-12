@@ -5,7 +5,7 @@ KSP Ship List Mod
 
 This is a plugin for [Kerbal Space Program] that adds a ship list window with some
 information about your ships (crew, fuel levels).
-It requires the [KSP Toolbar Plugin].
+Old versions (before 0.9) require the [KSP Toolbar Plugin].
 
 For more information, please visit the [Forum Development Thread].
 
