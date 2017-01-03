@@ -100,7 +100,8 @@ namespace KSPShipList
 		private struct cfg {
 			public const int ShipListWindowID = 1231648609; // Kiwa.hexdump
 			public const int ShipListSettingsWindowID = ShipListWindowID + 1;
-			public static Vector2 windowSize = new Vector2(640,480);
+			//public static Vector2 windowSize = new Vector2(640,480);
+			public static Vector2 windowSize = new Vector2(700, 480);
 
 			public static float nameMinWidth { get { return 200f; } } //0.35f * windowSize.x; } }
 			public static GUILayoutOption nameLayout = GUILayout.MinWidth(nameMinWidth);

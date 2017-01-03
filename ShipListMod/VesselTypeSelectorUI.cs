@@ -33,9 +33,11 @@ namespace KSPShipList
 			buttonOrder = new List<VesselType>();
 			buttonOrder.Add(VesselType.Debris);
 			buttonOrder.Add(VesselType.Probe);
+			buttonOrder.Add(VesselType.Relay);
 			buttonOrder.Add(VesselType.Rover);
 			buttonOrder.Add(VesselType.Lander);
 			buttonOrder.Add(VesselType.Ship);
+			buttonOrder.Add(VesselType.Plane);
 			buttonOrder.Add(VesselType.Station);
 			buttonOrder.Add(VesselType.Base);
 			buttonOrder.Add(VesselType.EVA);
@@ -73,7 +75,7 @@ namespace KSPShipList
 					UiUtils.DrawOrbitIcon(button, type);
 				}
 			} else {
-				GUILayout.Label("Filter unavailable, MapIcons not yet loaded");
+				GUILayout.Label("Filter unavailable, OrbitIcons not loaded");
 			}
 
 			//GUI.skin = originalSkin;
@@ -102,24 +104,42 @@ namespace KSPShipList
 			OrbitIconLocation[VesselType.EVA] = new Rect(0.4f, 0.4f, 0.2f, 0.2f);
 			//OrbitIconLocation[VesselType.Flag] = new Rect(0.8f, 0.0f, 0.2f, 0.2f);
 			OrbitIconLocation[VesselType.Flag] = new Rect(0.86f, 0.07f, 0.15f, 0.15f);
+
+			OrbitIconLocation[VesselType.Relay] = new Rect(0.8f, 0.6f, 0.2f, 0.2f);
+			OrbitIconLocation[VesselType.Plane] = new Rect(0.8f, 0.8f, 0.2f, 0.2f);
+
+			foreach (VesselType v in System.Enum.GetValues(typeof(VesselType)))
+			{
+				if (!OrbitIconLocation.ContainsKey(v))
+				{
+					OrbitIconLocation[v] = OrbitIconLocation[VesselType.Unknown];
+				}
+			}
+
+			foreach (Texture2D t in Resources.FindObjectsOfTypeAll<Texture2D>())
+			{
+				if (t.name == "OrbitIcons")
+				{
+					iconsMap = t;
+					break;
+				}
+			}
 		}
 
 		private static Texture2D iconsMap;
 
 		public static bool hasIcons {
 			get {
-				if (iconsMap == null) {
-					iconsMap = MapView.OrbitIconsMap;
-				}
+				//if (iconsMap == null) {
+				//	iconsMap = MapView.OrbitIconsMap;
+				//}
 				return (iconsMap != null);
 			}
 		}
 
 		public static void DrawOrbitIcon(Rect target, VesselType type) {
 			if (iconsMap != null) {
-				GUI.DrawTextureWithTexCoords(target,
-			                                 iconsMap,
-			                                 OrbitIconLocation[type]);
+				GUI.DrawTextureWithTexCoords(target, iconsMap, OrbitIconLocation[type]);
 			}
 		}
 	}
